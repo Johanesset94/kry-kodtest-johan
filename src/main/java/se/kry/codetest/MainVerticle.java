@@ -1,5 +1,6 @@
 package se.kry.codetest;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
@@ -9,8 +10,10 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import netscape.javascript.JSObject;
 import se.kry.codetest.migrate.DBMigration;
 
+import javax.swing.text.StyledEditorKit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,12 +21,12 @@ import java.util.stream.Collectors;
 public class MainVerticle extends AbstractVerticle {
 
     private HashMap<String, String> services = new HashMap<>();
-    //TODO use this
     private DBConnector connector;
     private BackgroundPoller poller = new BackgroundPoller();
 
     private String SQL_ALL_SERVICES = "SELECT * FROM service";
     private String SQL_INSERT_SERVICE = "INSERT INTO service (\n url) VALUES('";
+    private String SQL_DELETE_SERVICE = "DELETE FROM service WHERE url = '";
 
     @Override
     public void start(Future<Void> startFuture) {
@@ -31,7 +34,7 @@ public class MainVerticle extends AbstractVerticle {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         services.put("https://www.kry.se", "UNKNOWN");
-
+        //saveService(new JsonObject().put("url", "https://www.kry.se"));
         vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices(services));
         setRoutes(router);
         vertx
@@ -72,6 +75,22 @@ public class MainVerticle extends AbstractVerticle {
                     .putHeader("content-type", "text/plain")
                     .end("OK");
         });
+        router.delete("/service").handler(req ->{
+            JsonObject jsonBody = req.getBodyAsJson();
+            deleteService(jsonBody).setHandler(done ->{
+                if (done.succeeded()) {
+                    req.response()
+                            .setStatusCode(202)
+                            .putHeader("content-type", "text/plain")
+                            .end("Accepted");
+                }else{
+                    req.response()
+                            .setStatusCode(406)
+                            .putHeader("content-type", "text/plain")
+                            .end("Not accepted");
+                }
+            });
+        });
     }
 
     public void saveService(JsonObject json) {
@@ -86,17 +105,30 @@ public class MainVerticle extends AbstractVerticle {
 
     public Future<Boolean> fetchServices() {
         Future<Boolean> done = Future.future();
-        Future<ResultSet> resp = connector.query(SQL_ALL_SERVICES);
-        resp.setHandler(res -> {
+        connector.query(SQL_ALL_SERVICES).setHandler(res -> {
             if (res.succeeded()) {
                 List<JsonObject> rows = res.result().getRows();
-                System.out.println(rows);
                 for (JsonObject row : rows) {
                     services.put(row.getString("url"), "UNKNOWN");
                 }
                 done.complete(true);
             } else {
                 System.out.println("Fetch services unsuccessfull, cause: " + res.cause());
+                done.failed();
+            }
+        });
+        return done;
+    }
+
+    public Future<Boolean> deleteService(JsonObject service){
+        Future<Boolean> done = Future.future();
+        services.remove(service.getString("url"));
+        connector.query(SQL_DELETE_SERVICE+service.getString("url") + "';").setHandler(res ->{
+            if (res.succeeded()) {
+                System.out.println("Successfully deleted service " + service.getString("url"));
+                done.complete(true);
+            }else{
+                System.out.println("Could not remove service " + service.getString("url") + ", cause: " + res.cause());
                 done.failed();
             }
         });
