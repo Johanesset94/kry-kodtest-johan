@@ -18,14 +18,14 @@ fetch(servicesRequest)
             var promptButton = document.createElement("button");
             promptButton.innerHTML = "Set name";
             promptButton.onclick = function(){
-                var newName = prompt("What should this service be called");
+                var newName = prompt("What should this service be called?");
                 service.name = newName;
                 updateService(service);
             }
             if(service.name !== null){
                 console.log("got name");
                 li.appendChild(document.createTextNode(service.name +
-                    ' url: ' + service.url +
+                    ' | url: ' + service.url +
                     ' | status:' + service.status +
                     ' | added: ' + service.date +
                     '  '));

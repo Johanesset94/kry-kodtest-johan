@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 
 public class MainVerticle extends AbstractVerticle {
 
-    private HashMap<String, String> services = new HashMap<>();
-    private ArrayList<JsonObject> servicesJson = new ArrayList<>();
+    //private HashMap<String, String> services = new HashMap<>();
+    private List<JsonObject> servicesJson = new ArrayList<>();
     private DBConnector connector;
     private BackgroundPoller poller = new BackgroundPoller();
 
@@ -31,7 +31,8 @@ public class MainVerticle extends AbstractVerticle {
         router.route().handler(BodyHandler.create());
         //services.put("https://www.kry.se", "UNKNOWN");
         //saveService(new JsonObject().put("url", "https://www.kry.se"));
-        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices(services));
+        fetchServices();
+        vertx.setPeriodic(1000 * 60, timerId -> poller.pollServices(servicesJson));
         setRoutes(router);
         vertx
                 .createHttpServer()
@@ -58,7 +59,7 @@ public class MainVerticle extends AbstractVerticle {
         router.post("/service").handler(req -> {
             JsonObject jsonBody = req.getBodyAsJson();
             saveService(jsonBody);
-            services.put(jsonBody.getString("url"), "UNKNOWN");
+            //servicesJson.put(jsonBody.getString("url"), "UNKNOWN");
             req.response()
                     .putHeader("content-type", "text/plain")
                     .end("OK");
@@ -113,14 +114,18 @@ public class MainVerticle extends AbstractVerticle {
         connector.query(SQL_ALL_SERVICES).setHandler(res -> {
             if (res.succeeded()) {
                 List<JsonObject> rows = res.result().getRows();
+                // Do not overwrite already known services
+                List<String> urls = servicesJson
+                        .stream()
+                        .map(service -> service.getString("url"))
+                        .collect(Collectors.toList());
+
                 for (JsonObject row : rows) {
                     row.put("status", "UNKNOWN");
-                    if (!servicesJson.contains(row))
+                    if (!urls.contains(row.getString("url"))) {
                         servicesJson.add(row);
-                    services.put(
-                            row.getString("url"),
-                            "UNKNOWN");
-                    System.out.println(row);
+                    }
+                    //System.out.println(row);
                 }
                 done.complete(true);
             } else {
@@ -161,7 +166,7 @@ public class MainVerticle extends AbstractVerticle {
                 break;
             }
         }
-        
+
         connector.query("UPDATE service " +
                 "SET name = '" + service.getString("name") + "' " +
                 "WHERE url = '" + service.getString("url") + "';")
