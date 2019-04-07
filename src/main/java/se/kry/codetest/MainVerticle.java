@@ -99,17 +99,27 @@ public class MainVerticle extends AbstractVerticle {
         });
     }
 
-    public void saveService(JsonObject json) {
-        connector.query(SQL_INSERT_SERVICE + json.getString("url") + "', datetime('now', 'localtime'));").setHandler(done -> {
+    /**
+     * Saves a service with provided url to the database and saves the date it was added
+     * @param json json containing url as a string
+     */
+    private void saveService(JsonObject json) {
+        // Naive attempt to prevent SQL-injections by escaping ; chars
+        String url = json.getString("url").replace(";", "");
+        connector.query(SQL_INSERT_SERVICE + url + "', datetime('now', 'localtime'));").setHandler(done -> {
             if (done.succeeded()) {
-                System.out.println("Service " + json.getString("url") + " saved successfully");
+                System.out.println("Service " + url + " saved successfully");
             } else {
                 System.out.println("Service could not be saved in DB, cause: " + done.cause());
             }
         });
     }
 
-    public Future<Boolean> fetchServices() {
+    /**
+     * Fetches services from database and puts them into servicesJson list
+     * @return future to determine operation done
+     */
+    private Future<Boolean> fetchServices() {
         Future<Boolean> done = Future.future();
         connector.query(SQL_ALL_SERVICES).setHandler(res -> {
             if (res.succeeded()) {
@@ -136,8 +146,15 @@ public class MainVerticle extends AbstractVerticle {
         return done;
     }
 
-    public Future<Boolean> deleteService(JsonObject service) {
+    /**
+     * Deletes a service from local list and database
+     * @param service containing url of service to be deleted
+     * @return future to determine operation done
+     */
+    private Future<Boolean> deleteService(JsonObject service) {
         Future<Boolean> done = Future.future();
+        // Naive attempt to prevent SQL-injections by escaping ; chars
+        String url = service.getString("url").replace(";", "");
         // Delete service from local list
         for (JsonObject s : servicesJson) {
             if (s.getString("url").equals(service.getString("url"))) {
@@ -146,36 +163,45 @@ public class MainVerticle extends AbstractVerticle {
             }
         }
         // Delete from db
-        connector.query(SQL_DELETE_SERVICE + service.getString("url") + "';").setHandler(res -> {
+        connector.query(SQL_DELETE_SERVICE + url + "';").setHandler(res -> {
             if (res.succeeded()) {
-                System.out.println("Successfully deleted service " + service.getString("url"));
+                System.out.println("Successfully deleted service " + url);
                 done.complete(true);
             } else {
-                System.out.println("Could not remove service " + service.getString("url") + ", cause: " + res.cause());
+                System.out.println("Could not remove service " + url + ", cause: " + res.cause());
                 done.failed();
             }
         });
         return done;
     }
 
-    public Future<Boolean> updateService(JsonObject service) {
+    /**
+     * Updates the name of a service in local list and database.
+     * Could quite easily be extended to change multiple parameters since everything is included in input
+     * @param service as a json object
+     * @return future to determine operation done
+     */
+    private Future<Boolean> updateService(JsonObject service) {
         Future<Boolean> done = Future.future();
+        // Naive attempt to prevent SQL-injections by escaping ; chars
+        String name = service.getString("name").replace(";", "");
+        String url =  service.getString("url").replace(";", "");
+
         for (JsonObject s : servicesJson) {
-            if (s.getString("url").equals(service.getString("url"))) {
+            if (s.getString("url").equals(url)) {
                 s.put("name", service.getString("name"));
                 break;
             }
         }
-
         connector.query("UPDATE service " +
-                "SET name = '" + service.getString("name") + "' " +
-                "WHERE url = '" + service.getString("url") + "';")
+                "SET name = '" + name + "' " +
+                "WHERE url = '" + url + "';")
                 .setHandler(res -> {
                     if (res.succeeded()) {
-                        System.out.println("Successfully updated service " + service.getString("url"));
+                        System.out.println("Successfully updated service " + url);
                         done.complete(true);
                     } else {
-                        System.out.println("Could not update service " + service.getString("url") + ", cause: " + res.cause());
+                        System.out.println("Could not update service " + url + ", cause: " + res.cause());
                         done.failed();
                     }
                 });

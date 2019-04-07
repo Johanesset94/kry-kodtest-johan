@@ -13,6 +13,13 @@ public class BackgroundPoller {
     private int size;
     private int handled;
 
+    /**
+     * Iterates list of json in parallell to poll each service.
+     * If they return any code other than 200 or takes longer than 10 seconds the poll failed and status is set to FAIL,
+     * otherwise OK if status returned is 200
+     * @param services list of services formated as Json
+     * @return Future that determines if poll was complete
+     */
     public Future<List<String>> pollServices(List<JsonObject> services) {
         Future<List<String>> res = Future.future();
 

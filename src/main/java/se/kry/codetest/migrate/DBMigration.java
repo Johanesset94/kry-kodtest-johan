@@ -4,6 +4,9 @@ import io.vertx.core.Vertx;
 import se.kry.codetest.DBConnector;
 
 public class DBMigration {
+  /**
+   * "Schema" of table services
+   */
   private static String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS service (\n" +
           "url VARCHAR(128) NOT NULL PRIMARY KEY,\n" +
           "name VARCHAR(128),\n" +
