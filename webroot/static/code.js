@@ -19,9 +19,24 @@ fetch(servicesRequest)
             promptButton.innerHTML = "Set name";
             promptButton.onclick = function(){
                 var newName = prompt("What should this service be called");
+                service.name = newName;
+                updateService(service);
             }
-
-            li.appendChild(document.createTextNode(service.name + ': ' + service.status + '   '));
+            if(service.name !== null){
+                console.log("got name");
+                li.appendChild(document.createTextNode(service.name +
+                    ' url: ' + service.url +
+                    ' | status:' + service.status +
+                    ' | added: ' + service.date +
+                    '  '));
+            }else{
+                console.log("no name");
+                li.appendChild(document.createTextNode(
+                    'url: ' + service.url +
+                    ' | status:' + service.status +
+                    ' | added: ' + service.date +
+                    '  '));
+            }
             li.appendChild(deleteButton);
             li.appendChild(promptButton);
             listContainer.appendChild(li);
@@ -50,7 +65,20 @@ function deleteService(service) {
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({url: service.name})
+        body: JSON.stringify(service)
+    }).then(function () {
+        location.reload()
+    });
+}
+
+function updateService(service) {
+    fetch('/service', {
+        method: 'put',
+        headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(service)
     }).then(function () {
         location.reload()
     });
