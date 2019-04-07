@@ -1,19 +1,12 @@
 package se.kry.codetest;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import netscape.javascript.JSObject;
-import se.kry.codetest.migrate.DBMigration;
-
-import javax.swing.text.StyledEditorKit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
