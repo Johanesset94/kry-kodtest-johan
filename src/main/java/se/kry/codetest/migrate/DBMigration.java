@@ -11,7 +11,6 @@ public class DBMigration {
           ");";
   public static void main(String[] args) {
     Vertx vertx = Vertx.vertx();
-    System.out.println(SQL_CREATE_TABLE);
     DBConnector connector = new DBConnector(vertx);
     connector.query(SQL_CREATE_TABLE)
             .setHandler(done -> {

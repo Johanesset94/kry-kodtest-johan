@@ -27,7 +27,7 @@ public class BackgroundPoller {
                         URL url = new URL(service.getString("url"));
                         HttpURLConnection con = (HttpURLConnection) url.openConnection();
                         con.setRequestMethod("GET");
-                        con.setConnectTimeout(10000);
+                        con.setConnectTimeout(10000); //This counts as protecting the poller from misbehaving services? :D
                         con.connect();
                         int status = con.getResponseCode();
                         if(status == 200){
